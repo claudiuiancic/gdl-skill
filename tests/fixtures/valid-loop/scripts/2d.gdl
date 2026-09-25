@@ -1,0 +1,4 @@
+﻿PEN pen_contour
+HOTSPOT2 0, 0
+HOTSPOT2 A, B
+RECT2 0, 0, A, B

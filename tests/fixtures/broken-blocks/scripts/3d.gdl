@@ -1,0 +1,8 @@
+﻿MATERIAL mat_body
+HOTSPOT 0, 0, 0
+FOR i = 1 TO 3
+	BLOCK A, B, top_thk
+IF top_thk > 0 THEN
+	ADDZ top_thk
+	BLOCK A, B, top_thk
+END

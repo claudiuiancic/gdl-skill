@@ -1,0 +1,4 @@
+﻿MATERIAL mat_body
+HOTSPOT 0, 0, 0
+BLOCK A, B, ZZYZX / 4
+END

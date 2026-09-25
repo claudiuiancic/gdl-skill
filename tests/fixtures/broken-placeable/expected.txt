@@ -1,0 +1,3 @@
+no_ancestry
+missing_std_params
+no_bom

@@ -1,0 +1,4 @@
+# licensed manuals — each user copies their own into references/
+*.pdf
+__pycache__/
+.DS_Store

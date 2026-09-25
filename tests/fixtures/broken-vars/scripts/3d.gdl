@@ -1,0 +1,8 @@
+﻿MATERIAL mat_body
+HOTSPOT 0, 0, 0
+IF NOT has_top THEN ADDZ 0.1
+ADDZ _missing_h
+	BLOCK width, B, top_thk
+DEL 1
+...
+END

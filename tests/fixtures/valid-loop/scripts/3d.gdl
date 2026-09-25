@@ -1,0 +1,17 @@
+﻿MATERIAL mat_body
+HOTSPOT 0, 0, 0
+HOTSPOT A, B, ZZYZX
+
+FOR i = 1 TO n_shelves
+	ADDZ i * _pitch
+		BLOCK A, B, top_thk
+	DEL 1
+NEXT i
+
+IF has_back THEN
+	ADDY B - 0.02
+		BLOCK A, 0.02, ZZYZX
+	DEL 1
+ENDIF
+
+END

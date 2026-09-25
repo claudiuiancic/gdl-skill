@@ -1,0 +1,3 @@
+﻿! derived values
+IF n_shelves < 1 THEN n_shelves = 1
+_pitch = (ZZYZX - top_thk) / n_shelves

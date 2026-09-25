@@ -1,0 +1,6 @@
+﻿MATERIAL mat_body
+HOTSPOT 0, 0, 0
+IF has_back = 2 THEN
+	BLOCK A, B, ZZYZX
+ENDIF
+END

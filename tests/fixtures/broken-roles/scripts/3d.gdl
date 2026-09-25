@@ -1,0 +1,5 @@
+﻿MATERIAL mat_body
+HOTSPOT 0, 0, 0
+VALUES "top_thk" 0.02, 0.03
+BLOK A, B, top_thk
+END

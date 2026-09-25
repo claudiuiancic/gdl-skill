@@ -1,0 +1,9 @@
+﻿! Master script — runs before every other script.
+! Shared calculations and attribute choices only. NEVER put END here.
+
+! guard the inputs
+IF top_thk <= 0 THEN top_thk = 0.001
+IF top_thk > ZZYZX THEN top_thk = ZZYZX
+
+! derived values, underscore prefix, assigned before use
+_leg_h = ZZYZX - top_thk

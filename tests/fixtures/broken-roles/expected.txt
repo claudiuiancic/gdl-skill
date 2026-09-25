@@ -1,0 +1,5 @@
+wrong_script
+no_2d
+unknown_command
+no_hotspot
+no_geometry

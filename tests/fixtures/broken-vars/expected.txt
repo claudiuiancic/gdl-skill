@@ -1,0 +1,6 @@
+undefined_var
+forward_decl
+bare_not
+stub
+stack_imbalance
+no_geometry

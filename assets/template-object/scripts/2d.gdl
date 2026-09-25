@@ -1,0 +1,9 @@
+﻿! 2D script. The plan symbol, drawn independently of the 3D model.
+PEN pen_contour
+
+HOTSPOT2 0, 0
+HOTSPOT2 A, 0
+HOTSPOT2 A, B
+HOTSPOT2 0, B
+
+RECT2 0, 0, A, B
