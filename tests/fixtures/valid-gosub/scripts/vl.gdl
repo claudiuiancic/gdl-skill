@@ -1,0 +1,3 @@
+﻿! Parameter script.
+VALUES "side" "none", "left", "both"
+VALUES "top_thk" 0.018, 0.02, 0.025, 0.03

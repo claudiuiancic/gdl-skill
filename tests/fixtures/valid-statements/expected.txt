@@ -1,0 +1,6 @@
+# Correct GDL that check.py used to misread. Must be clean.
+# - built-in functions (MAX, MIN, INT, ABS, CEIL, COS, SIN) are not variables
+# - FOR loop variables and assignments after ':' are assignments
+# - h[i] = x and d.key = x are assignments, not macro calls
+# - a line continuing a comma-ended argument list is not a statement
+# - a name given by DEFINE STYLE "x" may be used bare: STYLE x

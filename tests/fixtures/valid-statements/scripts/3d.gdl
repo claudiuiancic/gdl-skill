@@ -1,0 +1,37 @@
+﻿! 3D script.
+MATERIAL mat_body
+DEFINE STYLE "lblStyle" "Arial", 2, 1, 0
+STYLE lblStyle
+
+HOTSPOT 0, 0, 0
+HOTSPOT A, B, ZZYZX
+
+! legs along the front edge; no transformation inside the loop
+FOR iLeg = 1 TO n_legs
+	xLeg = (A - _leg) * (iLeg - 1) / (n_legs - 1)
+	PRISM_ 4, _leg_h,
+		xLeg,        0,    15,
+		xLeg + _leg, 0,    15,
+		xLeg + _leg, _leg, 15,
+		xLeg,        _leg, 15
+NEXT iLeg
+
+ADDZ h_shelf[1] : BLOCK A, B, top_thk : DEL 1
+ADDZ h_shelf[2] : BLOCK A, B, top_thk : DEL 1
+
+! the top, its outline continued over several lines
+ADDZ _leg_h
+	PRISM_ 4, top_thk,
+		0, 0, 15,
+		A, 0, 15,
+		A, B, 15,
+		0, B, 15
+DEL 1
+
+IF legStyle = 1 THEN
+	ADDZ COS (0) * _leg_h - SIN (0)
+		BLOCK _leg, _leg, top_thk
+	DEL 1
+ENDIF
+
+END

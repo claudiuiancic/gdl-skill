@@ -1,0 +1,2 @@
+﻿! Master script.
+IF n_slats < 1 THEN n_slats = 1

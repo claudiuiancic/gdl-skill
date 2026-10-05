@@ -16,6 +16,8 @@ import re
 import sys
 import xml.etree.ElementTree as ET
 
+from gdl_source import statements
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 INDEX = os.path.join(os.path.dirname(HERE), "references", "command-index.md")
 
@@ -44,14 +46,54 @@ KEYWORDS = {
     "WHILE", "ENDWHILE", "DO", "REPEAT", "UNTIL", "GOTO", "GOSUB", "RETURN",
     "END", "EXIT", "AND", "OR", "NOT", "EXOR", "MOD", "DIM", "LET", "VALUES",
     "RANGE", "PARAMETERS", "LOCK", "HIDEPARAMETER", "PRINT", "PUT", "GET",
-    "USE", "NSP", "CALL", "TRUE", "FALSE", "PI",
+    "USE", "NSP", "CALL", "TRUE", "FALSE", "PI", "SET", "DEFINE",
+    # the attribute kinds that follow DEFINE
+    "EMPTY_FILL", "FILLA", "IMAGE_FILL", "LINEAR_GRADIENT_FILL", "SOLID_FILL",
+    "RADIAL_GRADIENT_FILL", "SYMBOL_FILL", "TRANSLUCENT_FILL", "SYMBOL_LINE",
+    "TEXTURE", "LINE",
+    # words inside other statements: CALL ... PARAMETERS ALL RETURNED_PARAMETERS,
+    # SHADOW OFF, MODEL SOLID
+    "RETURNED_PARAMETERS", "ALL", "ON", "OFF", "AUTO", "WIRE", "SURFACE", "SOLID",
 }
+
+# Built-in functions. The index lists them only as section titles ("Arithmetical
+# Functions — p.340"), so they are spelled out here from GDL Reference Guide 29,
+# pp. 340-345 and 353.
+FUNCTIONS = {
+    "ABS", "CEIL", "INT", "FRA", "ROUND_INT", "SGN", "SQR",       # arithmetical
+    "ACS", "ASN", "ATN", "COS", "SIN", "TAN",                     # circular
+    "EXP", "LGT", "LOG",                                          # transcendental
+    "MIN", "MAX", "RND",                                          # statistical
+    "BITTEST", "BITSET",                                          # bit
+    "IND", "REQ", "REQUEST", "APPLICATION_QUERY", "LIBRARYGLOBAL",  # special
+    "SPLIT", "STR", "STRLEN", "STRSTR", "STRSUB", "STW",          # string
+    "STRTOUPPER", "STRTOLOWER",
+}
+
+# Functions that write results into variables passed as arguments, e.g.
+# n = REQUEST ("Name_of_program", "", programName). Every bare name after the
+# first argument is an output, hence an assignment.
+OUTPUT_ARG_RE = re.compile(r"\b(REQUEST(?:\{\d+\})?|REQ|APPLICATION_QUERY|"
+                           r"LIBRARYGLOBAL|INPUT|CALLFUNCTION|SPLIT)\s*\(", re.I)
 
 PUSH_RE = re.compile(r"\b(ADD[XYZ]?|ADD2|MUL[XYZ]?|MUL2|ROT[XYZ]?|ROT2)\b", re.I)
 POP_RE = re.compile(r"\bDEL\s+(\d+|TOP)\b|\bDEL\b(?!\s*(\d|TOP))", re.I)
 DELALL_RE = re.compile(r"\bDELALL\b", re.I)
-ASSIGN_RE = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=(?!=)", re.M)
-IDENT_RE = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\b")
+# Applied to one statement, not one line: `a = 1 : b = 2` holds two.
+# Also matches an array element, `h[i] = x`, a dictionary field, `d.key[i].name = x`,
+# and the LET form.
+ASSIGN_RE = re.compile(r"^\s*(?:LET\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*"
+                       r"(?:\[[^\]=]*\]\s*|\.\s*[A-Za-z_][A-Za-z0-9_]*\s*)*=(?!=)", re.I)
+FOR_RE = re.compile(r"^\s*FOR\s+([A-Za-z_][A-Za-z0-9_]*)\s*=", re.I)
+DIM_RE = re.compile(r"^\s*DIM\s+(.*)$", re.I)
+# The statement after THEN or ELSE on the same line: IF x THEN n = 1 ELSE n = 2
+THEN_RE = re.compile(r"\b(?:THEN|ELSE)\s+(.*?)(?=\bELSE\b|$)", re.I)
+# Attributes defined inline get a name that is then used bare: STYLE txtStyle
+DEFINED_RE = re.compile(r'\b(?:DEFINE\s+[A-Z_]+(?:\{\d+\})?|TEXTBLOCK_?|PARAGRAPH)\s+"([^"]+)"', re.I)
+# Not after a '.', which makes it a dictionary key, not a variable.
+IDENT_RE = re.compile(r"(?<!\.)\b([A-Za-z_][A-Za-z0-9_]*)\b")
+# CALL "macro" PARAMETERS name = value, ...: the names are the macro's parameters.
+CALL_PARAM_RE = re.compile(r"(?:\bPARAMETERS\b|,)\s*([A-Za-z_][A-Za-z0-9_]*)\s*=(?!=)", re.I)
 FIRSTWORD_RE = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)")
 
 
@@ -74,13 +116,50 @@ def load_commands():
     return names
 
 
+def assigned_in(stmt):
+    """Names one statement gives a value to."""
+    names = set()
+    for m in (ASSIGN_RE.match(stmt), FOR_RE.match(stmt)):
+        if m:
+            names.add(m.group(1).upper())
+    m = DIM_RE.match(stmt)
+    if m:
+        names |= {n.upper() for n in re.findall(r"([A-Za-z_][A-Za-z0-9_]*)\s*\[", m.group(1))}
+    for m in THEN_RE.finditer(stmt):
+        m2 = ASSIGN_RE.match(m.group(1))
+        if m2:
+            names.add(m2.group(1).upper())
+    for m in OUTPUT_ARG_RE.finditer(stmt):
+        args, depth, cur = [], 1, ""
+        for ch in stmt[m.end():]:
+            depth += (ch == "(") - (ch == ")")
+            if depth == 0 or (ch == "," and depth == 1):
+                args.append(cur.strip())
+                cur = ""
+                if depth == 0:
+                    break
+                continue
+            cur += ch
+        names |= {a.upper() for a in args[1:]
+                  if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", a)}
+    return names
+
+
+def assigned_names(text):
+    """Every name the script gives a value to, anywhere."""
+    names = set()
+    for _, _, stmt in statements(text.splitlines()):
+        names |= assigned_in(stmt)
+    return names
+
+
 def strip_code(text):
     """Drop comments and string contents, keep line numbers by blanking."""
     out = []
     for line in text.splitlines():
         i = line.find("!")
         clean = line[:i] if i >= 0 else line
-        clean = re.sub(r'"[^"]*"', '""', clean)
+        clean = re.sub(r'"[^"]*"|`[^`]*`|\'[^\']*\'', '""', clean)
         out.append(clean)
     return out
 
@@ -233,7 +312,14 @@ def check_idents(scripts, declared, has_paramlist, commands, rep):
     """Names used but never declared or assigned anywhere in the object."""
     assigned = set()
     for text in scripts.values():
-        assigned |= {m.group(1).upper() for m in ASSIGN_RE.finditer(text)}
+        assigned |= assigned_names(text)
+
+    macro_params = set()
+    for text in scripts.values():
+        for _, _, stmt in statements(text.splitlines()):
+            if re.match(r"\s*CALL\b", stmt, re.I):
+                macro_params |= {m.group(1).upper() for m in CALL_PARAM_RE.finditer(stmt)}
+    assigned |= macro_params
 
     for fname, text in scripts.items():
         seen = set()
@@ -258,12 +344,12 @@ def check_idents(scripts, declared, has_paramlist, commands, rep):
 def check_derived(scripts, rep):
     """Underscore-prefixed derived variables must be assigned before use."""
     master = scripts.get("1d.gdl", "")
-    master_assigned = {m.group(1).upper() for m in ASSIGN_RE.finditer(master)}
+    master_assigned = assigned_names(master)
     for fname in ("3d.gdl", "2d.gdl"):
         text = scripts.get(fname)
         if not text:
             continue
-        here = {m.group(1).upper() for m in ASSIGN_RE.finditer(text)}
+        here = assigned_names(text)
         seen = set()
         for m in IDENT_RE.finditer(text):
             name = m.group(1)
@@ -279,11 +365,10 @@ def check_unknown_commands(scripts, commands, assigned_names, rep):
     """First word of a statement that is neither a command nor an assignment."""
     for fname, text in scripts.items():
         seen = set()
-        for n, line in enumerate(text.splitlines(), 1):
-            stripped = line.strip()
-            if not stripped or ASSIGN_RE.match(line):
+        for n, _, stmt in statements(text.splitlines()):
+            if not stmt or ASSIGN_RE.match(stmt):
                 continue
-            m = FIRSTWORD_RE.match(stripped)
+            m = FIRSTWORD_RE.match(stmt)
             if not m:
                 continue
             word = m.group(1).upper()
@@ -436,7 +521,7 @@ def main():
     if not os.path.isdir(sdir):
         sys.exit("%s does not look like an HSF folder (no scripts/ inside)" % root)
 
-    commands = load_commands()
+    commands = load_commands() | FUNCTIONS
     declared, has_paramlist = read_params(root)
     rep = Report()
     if not has_paramlist:
@@ -466,7 +551,7 @@ def main():
 
     assigned = set()
     for text in scripts.values():
-        assigned |= {m.group(1).upper() for m in ASSIGN_RE.finditer(text)}
+        assigned |= assigned_names(text)
 
     # Unknown statement heads first, so a misspelled command is not also
     # reported as an undeclared variable.
@@ -476,7 +561,9 @@ def main():
 
     macro_names = {m.group(1).upper() for text in raws.values()
                    for m in re.finditer(r'\bCALL\s+"?([A-Za-z_][A-Za-z0-9_]*)"?', text, re.I)}
-    check_idents(scripts, declared, has_paramlist, commands | mistyped | macro_names, rep)
+    defined = {m.group(1).upper() for text in raws.values() for m in DEFINED_RE.finditer(text)}
+    check_idents(scripts, declared | defined, has_paramlist,
+                 commands | mistyped | macro_names, rep)
     check_derived(scripts, rep)
     check_bare_not(scripts, rep)
     check_stubs(scripts, rep)

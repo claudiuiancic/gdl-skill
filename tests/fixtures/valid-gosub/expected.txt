@@ -1,0 +1,3 @@
+# All geometry is built in subroutines placed after END, reached by GOSUB with
+# string and numeric labels, with ':'-separated statements and the parameter
+# buffer. preview.py used to stop at END and see nothing. Must be clean.

@@ -219,7 +219,9 @@ than no checker.
 ## What preview.py looks for
 
 `check.py` reads the script; `preview.py` runs it. It executes the shape commands,
-the transformations, `FOR` and `IF`, with the parameter values from `paramlist.xml`,
+the transformations, `FOR`, `WHILE`, `REPEAT`, `IF`, `GOSUB`/`RETURN` to labelled
+subroutines, arrays, strings and the `PUT`/`GET` buffer, with the parameter values
+from `paramlist.xml`,
 and reports four things text analysis cannot reach: `no_geometry` — shape commands ran
 but nothing was built, usually a condition that is never true; `degenerate` — the model
 is flat on an axis; `size_mismatch` — the bounding box disagrees with `A`, `B` or

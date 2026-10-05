@@ -1,0 +1,46 @@
+﻿! 3D script. Every box goes through the "box" subroutine below END.
+MATERIAL mat_body
+HOTSPOT 0, 0, 0
+HOTSPOT A, B, ZZYZX
+
+IF side <> "none" THEN
+	bx = 0 : by = 0 : bz = 0
+	bdx = 0.05 : bdy = B : bdz = ZZYZX
+	gosub "box"
+ENDIF
+IF side = "both" THEN
+	bx = A - 0.05 : by = 0 : bz = 0
+	bdx = 0.05 : bdy = B : bdz = ZZYZX
+	gosub "box"
+ENDIF
+
+FOR iSlat = 1 TO n_slats
+	bx = 0 : by = 0 : bz = iSlat * (ZZYZX - 0.02) / n_slats
+	bdx = A : bdy = B : bdz = 0.02
+	gosub 100
+NEXT iSlat
+
+! a plate whose outline comes from the parameter buffer
+gosub "plate outline"
+PRISM_ NSP / 3, top_thk,
+	GET (NSP)
+
+END
+
+
+! axis-aligned box: corner (bx, by, bz), size (bdx, bdy, bdz)
+"box":
+	ADD bx, by, bz
+		BLOCK bdx, bdy, bdz
+	DEL 1
+RETURN
+
+! a numeric label, calling the string one
+100:
+	gosub "box"
+RETURN
+
+"plate outline":
+	PUT 0, 0, 15,  A, 0, 15
+	PUT A, B, 15 : PUT 0, B, 15
+RETURN

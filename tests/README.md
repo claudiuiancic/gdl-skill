@@ -14,7 +14,10 @@ reports problems on correct objects stops being read.
 
 `valid-basic` and `valid-loop` are correct objects and must stay clean, apart from the
 one warning `valid-loop` legitimately earns for a stack the checker cannot verify
-statically. The `broken-*` fixtures each carry a specific defect. The `semantic-*`
+statically. `valid-statements` and `valid-gosub` are correct objects reduced from real
+ones that both tools misread: built-in functions, `FOR` variables, assignments after
+`:` and to array elements, comma-continued argument lists, and geometry built only in
+subroutines after `END`. The `broken-*` fixtures each carry a specific defect. The `semantic-*`
 fixtures compile and pass the text checks, and are only caught by `preview.py`.
 
 When you add a rule to either script, add a fixture for it here at the same time. When

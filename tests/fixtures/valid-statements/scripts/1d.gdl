@@ -1,0 +1,13 @@
+﻿! Master script. Each line below used to raise a false finding in check.py.
+n_legs = MAX (2, MIN (8, INT (n_legs + 0.5)))
+_leg = 0.03 : _leg_h = ZZYZX - ABS (top_thk)
+
+FOR iShelf = 1 TO 2
+	IF h_shelf[iShelf] > _leg_h THEN h_shelf[iShelf] = _leg_h
+	h_shelf[iShelf] = CEIL (h_shelf[iShelf] * 1000) / 1000
+NEXT iShelf
+
+IF n_legs > 4 THEN legStyle = 1 ELSE legStyle = 0
+
+DICT _info
+_info.legs = n_legs
