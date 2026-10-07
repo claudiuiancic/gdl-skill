@@ -1,0 +1,14 @@
+﻿! 3D script.
+MATERIAL mat_body
+
+HOTSPOT   0,   0,     0
+HOTSPOT   A,   0,     0
+HOTSPOT   A,   B,     0
+HOTSPOT   0,   B,     0
+HOTSPOT   0,   0, ZZYZX
+
+ADDZ _leg_h
+	BLOCK A, B, top_thk
+DEL 1
+
+END

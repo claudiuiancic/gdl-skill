@@ -513,6 +513,53 @@ def check_roles(scripts, rep):
             rep.error("wrong_script", fname, "VALUES/LOCK/HIDEPARAMETER belong in vl.gdl, not here")
 
 
+def check_values_commas(raws, rep):
+    """String options with a comma in a VALUES list.
+
+    Archicad 29 shows such a parameter as a plain text field instead of a
+    dropdown: observed on a real object whose options read "H06L - 2 cuve,
+    stanga", fixed by removing the commas. Compiling and -interpret report
+    nothing, so this is the only place it can be caught.
+    """
+    for fname, raw in raws.items():
+        lines = raw.splitlines()
+        n = 0
+        while n < len(lines):
+            code = _code_part(lines[n])
+            if not re.match(r"\s*VALUES\b(?!\s*\{)", code, re.I):
+                n += 1
+                continue
+            start = n
+            stmt = code
+            # a value list continues on the next line after a trailing comma
+            while stmt.rstrip().endswith(",") and n + 1 < len(lines):
+                n += 1
+                stmt += " " + _code_part(lines[n])
+            strings = re.findall(r'"([^"]*)"|\'([^\']*)\'|`([^`]*)`', stmt)
+            options = ["".join(g) for g in strings][1:]   # the first is the parameter name
+            bad = [o for o in options if "," in o]
+            if bad:
+                rep.warn("values_comma", "%s:%d" % (fname, start + 1),
+                         "VALUES option(s) with a comma: %s — Archicad shows the "
+                         "parameter as a text field, not a dropdown; write the "
+                         "options without commas" % ", ".join('"%s"' % o for o in bad))
+            n += 1
+
+
+def _code_part(line):
+    """The line up to its comment, ignoring '!' inside strings."""
+    quote = None
+    for i, ch in enumerate(line):
+        if quote:
+            if ch == quote:
+                quote = None
+        elif ch in "\"'`":
+            quote = ch
+        elif ch == "!":
+            return line[:i]
+    return line
+
+
 def main():
     if len(sys.argv) != 2:
         sys.exit(__doc__)
@@ -568,6 +615,7 @@ def main():
     check_bare_not(scripts, rep)
     check_stubs(scripts, rep)
     check_roles(scripts, rep)
+    check_values_commas(raws, rep)
     check_macros(root, raws, rep)
     check_placeable(root, rep)
     check_encoding(root, rep)

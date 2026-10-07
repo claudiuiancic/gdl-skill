@@ -210,7 +210,8 @@ used but never declared in `paramlist.xml` nor assigned anywhere; `_`-prefixed d
 variables never assigned; a statement starting with something that is not a GDL
 command (Archicad silently treats it as a macro call); `NOT` without parentheses;
 placeholder lines left behind; a 2D script with nothing drawable in it; `VALUES` or
-`LOCK` outside `vl.gdl`.
+`LOCK` outside `vl.gdl`; a string option in a `VALUES` list that contains a comma
+(Archicad then shows a text field instead of a dropdown, and nothing else reports it).
 
 It deliberately reports "not statically verifiable" rather than guessing when pushes
 sit inside a loop or a `DEL` takes an expression. A checker that cries wolf is worse

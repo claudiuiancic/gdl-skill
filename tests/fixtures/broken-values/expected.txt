@@ -1,0 +1,3 @@
+# A string option with a comma in a VALUES list: Archicad shows a text field
+# instead of a dropdown. "finish" has a correct list and must not be reported.
+values_comma

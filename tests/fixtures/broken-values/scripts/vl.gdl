@@ -1,0 +1,7 @@
+﻿! Parameter script. Value lists and parameter locking live here, nowhere else.
+VALUES "top_thk" 0.018, 0.02, 0.025, 0.03
+! the comma inside the options turns the dropdown into a text field
+VALUES "variant" "one bowl", "two bowls, left",
+	"two bowls, right"
+! correct: no comma inside any option, commas only between them
+VALUES "finish" "brushed", "polished"   ! a comment, with a comma
