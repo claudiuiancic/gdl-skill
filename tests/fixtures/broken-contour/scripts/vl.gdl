@@ -1,0 +1,2 @@
+﻿! Parameter script. Value lists and parameter locking live here, nowhere else.
+VALUES "top_thk" 0.018, 0.02, 0.025, 0.03

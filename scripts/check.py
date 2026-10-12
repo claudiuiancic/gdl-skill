@@ -16,7 +16,7 @@ import re
 import sys
 import xml.etree.ElementTree as ET
 
-from gdl_source import statements
+from gdl_source import statements, strip_comment
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 INDEX = os.path.join(os.path.dirname(HERE), "references", "command-index.md")
@@ -513,6 +513,111 @@ def check_roles(scripts, rep):
             rep.error("wrong_script", fname, "VALUES/LOCK/HIDEPARAMETER belong in vl.gdl, not here")
 
 
+def _split_args(text):
+    """Split an argument list on commas outside strings and parentheses."""
+    parts, cur, quote, depth = [], "", None, 0
+    for ch in text:
+        if quote:
+            if ch == quote:
+                quote = None
+        elif ch in "\"'`":
+            quote = ch
+        elif ch in "([":
+            depth += 1
+        elif ch in ")]":
+            depth -= 1
+        elif ch == "," and depth == 0:
+            parts.append(cur.strip())
+            cur = ""
+            continue
+        cur += ch
+    parts.append(cur.strip())
+    return parts
+
+
+def _norm(expr):
+    return re.sub(r"\s+", "", expr).upper()
+
+
+def _special(status):
+    """Status codes of 900 and up (arc centres, tangent arcs) or non-literal."""
+    try:
+        return abs(float(_norm(status))) >= 900
+    except ValueError:
+        return True
+
+
+def check_contour_closing(raws, rep):
+    """A polygon contour that ends with status -1 away from its first point.
+
+    In PRISM_ and the polygon commands, -1 closes a contour back on its start,
+    and every Reference Guide example repeats the first vertex there. A real
+    object whose contour (built with PUT) ended with -1 on a different vertex
+    compiled, interpreted and passed every other check, and Archicad simply did
+    not build the body. Checked only where the first vertex and the closing one
+    are written at the same loop depth, so the comparison is between literal
+    expressions; a contour whose first vertex comes from a loop (circles,
+    arcs) is left alone rather than guessed at, and so is any contour using
+    special status codes (900 and up: arc centres, tangent arcs, ...), whose
+    closing rules differ.
+    """
+    loop_open = re.compile(r"^(FOR|WHILE|REPEAT)\b", re.I)
+    loop_close = re.compile(r"^(NEXT|ENDWHILE|UNTIL)\b", re.I)
+    for fname, raw in raws.items():
+        lines = [strip_comment(l) for l in raw.splitlines()]
+        depth = 0
+        start = None            # (x, y, depth, special) of the open PUT contour
+        for n, _, stmt in statements(lines):
+            if loop_open.match(stmt):
+                depth += 1
+            elif loop_close.match(stmt) and depth:
+                depth -= 1
+            if re.search(r"\bGET\s*\(|\bUSE\s*\(", stmt, re.I):
+                start = None
+            m = re.match(r"PUT\b(.*)$", stmt, re.I)
+            if m:
+                args = _split_args(m.group(1))
+                if len(args) % 3:
+                    start = None
+                    continue
+                for k in range(0, len(args), 3):
+                    x, y, st = args[k:k + 3]
+                    if start is None:
+                        start = [_norm(x), _norm(y), depth, False, x.strip(), y.strip()]
+                    if _special(st):
+                        start[3] = True
+                    if _norm(st) == "-1":
+                        if (start[2] == depth and not start[3]
+                                and (_norm(x), _norm(y)) != tuple(start[:2])):
+                            rep.warn("contour_open", "%s:%d" % (fname, n),
+                                     "contour closed with -1 on (%s, %s), not on its first "
+                                     "point (%s, %s) - Archicad may drop the body without "
+                                     "a message; repeat the first point with -1"
+                                     % (x, y, start[4], start[5]))
+                        start = None
+                continue
+            m = re.match(r"PRISM_\s+(.*)$", stmt, re.I)
+            if m and not re.search(r"\bGET\s*\(|\bUSE\s*\(", stmt, re.I):
+                args = _split_args(m.group(1))[2:]
+                if len(args) % 3:
+                    continue
+                first = None
+                special = False
+                for k in range(0, len(args), 3):
+                    x, y, st = args[k:k + 3]
+                    if first is None:
+                        first = (_norm(x), _norm(y))
+                        special = False
+                    special = special or _special(st)
+                    if _norm(st) == "-1":
+                        if not special and (_norm(x), _norm(y)) != first:
+                            rep.warn("contour_open", "%s:%d" % (fname, n),
+                                     "PRISM_ contour closed with -1 on (%s, %s), not on its "
+                                     "first point - Archicad may drop the body without a "
+                                     "message" % (x, y))
+                        first = None
+
+
 def check_values_commas(raws, rep):
     """String options with a comma in a VALUES list.
 
@@ -616,6 +721,7 @@ def main():
     check_stubs(scripts, rep)
     check_roles(scripts, rep)
     check_values_commas(raws, rep)
+    check_contour_closing(raws, rep)
     check_macros(root, raws, rep)
     check_placeable(root, rep)
     check_encoding(root, rep)

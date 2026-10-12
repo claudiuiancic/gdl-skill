@@ -211,7 +211,8 @@ variables never assigned; a statement starting with something that is not a GDL
 command (Archicad silently treats it as a macro call); `NOT` without parentheses;
 placeholder lines left behind; a 2D script with nothing drawable in it; `VALUES` or
 `LOCK` outside `vl.gdl`; a string option in a `VALUES` list that contains a comma
-(Archicad then shows a text field instead of a dropdown, and nothing else reports it).
+(Archicad then shows a text field instead of a dropdown, and nothing else reports it); a polygon contour closed with `-1` on a vertex other than its first one
+(Archicad then drops the body without any message).
 
 It deliberately reports "not statically verifiable" rather than guessing when pushes
 sit inside a loop or a `DEL` takes an expression. A checker that cries wolf is worse

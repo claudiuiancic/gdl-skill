@@ -1,0 +1,5 @@
+# A contour closed with -1 on a vertex other than its first: Archicad drops
+# the body without a message. The circle built in a loop and the literal
+# rectangle close correctly and must not be reported.
+contour_open
+stack_unverifiable   # pushes inside the side-panel loop

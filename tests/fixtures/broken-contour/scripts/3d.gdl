@@ -1,0 +1,40 @@
+﻿! 3D script.
+MATERIAL mat_body
+
+HOTSPOT   0,   0,     0
+HOTSPOT   A,   0,     0
+HOTSPOT   A,   B,     0
+HOTSPOT   0,   B,     0
+HOTSPOT   0,   0, ZZYZX
+
+! wrong: a side panel whose contour ends with -1 on a different vertex
+FOR iSide = 1 TO 2
+	PUT B, 0, 15, B, ZZYZX, 15
+	FOR iPt = 0 TO 4
+		PUT B * (1 - iPt / 4), ZZYZX - 0.1 * iPt, 15
+	NEXT iPt
+	PUT 0, 0, -1
+	ADDX (iSide - 1) * (A - 0.002)
+		ROTZ 90
+		ROTX 90
+			PRISM_ NSP / 3, 0.002, GET (NSP)
+		DEL 2
+	DEL 1
+NEXT iSide
+
+! correct: a circle generated in a loop, closed on its first vertex
+FOR iPt = 0 TO 23
+	PUT A / 2 + 0.05 * COS (iPt * 15), B / 2 + 0.05 * SIN (iPt * 15), 15
+NEXT iPt
+PUT A / 2 + 0.05, B / 2, -1
+PRISM_ NSP / 3, 0.01, GET (NSP)
+
+! correct: a literal contour that repeats its first vertex
+PRISM_ 5, top_thk,
+	0, 0, 15,
+	A, 0, 15,
+	A, B, 15,
+	0, B, 15,
+	0, 0, -1
+
+END
